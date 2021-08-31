@@ -21,37 +21,16 @@ float strt_time;
 float curr_time;
 int device_count;
 
-
-
 DeviceAddress addrs[MAX_SENSORS];
 
 void setup(void)
 {
-
-  DeviceAddress this_add;
   // start serial port
   Serial.begin(9600);
-  Serial.println("Dallas Temperature IC Control Library Demo");
   // Start up the library
   sensors.begin();
-  Serial.print("Number of sensors found: ");
-  device_count = sensors.getDeviceCount();
-  Serial.println(device_count);
-  delay(50);
-  Serial.println("Getting Device Adresses...");
-  
-  for (int i = 0; i < device_count; i++) {
-    sensors.getAddress(this_add, i);
-
-    // Copy array of 8 bytes representing address to sensor address array
-    memcpy(addrs[i], this_add, sizeof(addrs[i]));
-    
-    printAddress(this_add);
-    Serial.println();
-  }
-  
-  //Serial.println(printAddress(addrs[0]));
-  Serial.println("All Adresses Found");
+  // Discover the network
+  discoverNetwork();
     
 }
 
@@ -62,22 +41,26 @@ void loop(void)
   strt_time = millis();
   sensors.requestTemperatures();// Send the command to get temperature readings
   sensors.setWaitForConversion(true);
-  
   curr_time = millis();
-  Serial.print("Time: ");
-  Serial.print(curr_time - strt_time);
+
+  // Print JSON format to serial
   for (int i = 0; i < device_count; i++) {
     Serial.print(" {");
+    /*
+    Serial.print("Time");
+    Serial.print(" : ");
+    Serial.print(millis());
+    Serial.print(", ");
+    */
     printAddress(addrs[i]);
     Serial.print(" : ");
     Serial.print(sensors.getTempF(addrs[i]));
+
     Serial.print(" } ");
+    
   }
 
   //Serial.print(sensors.getTempF(a));
-
-  
-
 
   Serial.println();
   delay(5000);
@@ -93,4 +76,32 @@ void printAddress(DeviceAddress deviceAddress)
     if (deviceAddress[i] < 16) Serial.print("0");
     Serial.print(deviceAddress[i], HEX);
   }
+}
+
+// Function to discover network size and sensor adresses
+void discoverNetwork(){
+
+  DeviceAddress this_add;
+
+  // Find network size
+  Serial.print("Number of sensors found: ");
+  device_count = sensors.getDeviceCount();
+  Serial.println(device_count);
+  delay(50);
+
+  // Find adresses for all sensoprs in the network and add them to a gloabal list
+  Serial.println("Getting Device Adresses...");
+
+  for (int i = 0; i < device_count; i++) {
+    sensors.getAddress(this_add, i);
+
+    // Copy array of 8 bytes representing address to sensor address array
+    memcpy(addrs[i], this_add, sizeof(addrs[i]));
+    
+    printAddress(this_add);
+    Serial.println();
+  }
+
+  Serial.println("All Adresses Found");
+
 }
