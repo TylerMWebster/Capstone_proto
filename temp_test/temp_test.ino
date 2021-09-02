@@ -42,28 +42,41 @@ void loop(void)
   sensors.requestTemperatures();// Send the command to get temperature readings
   sensors.setWaitForConversion(true);
   curr_time = millis();
+  
+  String json = "";
+  json+="{";
 
   // Print JSON format to serial
   for (int i = 0; i < device_count; i++) {
-    Serial.print(" {");
+    json += "\"";
+      for (uint8_t j = 0; j < 8; j++)
+      {
+        // zero pad the address if necessary
+        if (addrs[i][j] < 16) json+= "0" ;
+        json+= addrs[i][j];
+      }
+    json += "\"";
     /*
     Serial.print("Time");
     Serial.print(" : ");
     Serial.print(millis());
     Serial.print(", ");
     */
-    printAddress(addrs[i]);
-    Serial.print(" : ");
-    Serial.print(sensors.getTempF(addrs[i]));
-
-    Serial.print(" } ");
-    
+    //printAddress(addrs[i]);
+    json+= " : ";
+    json += "\"";
+    json += sensors.getTempF(addrs[i]);
+    json += "\"";
+    if( i < device_count -1){
+      json += ", ";
+    }
   }
+  json+="}";
 
   //Serial.print(sensors.getTempF(a));
 
-  Serial.println();
-  delay(5000);
+  Serial.println(json);
+  delay(50);
 }
 
 
