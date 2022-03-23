@@ -122,7 +122,7 @@ class DataAnalyzer:
             api_temp, success = self.get_temp_at_time(start_time, self.api_temp)
             # Go through each sensor
             for sensor_id in self.sensors_data:
-                sensor_temp, success_2 = self.get_temp_at_time(start_time, self.api_temp)#self.sensors_data[sensor_id])
+                sensor_temp, success_2 = self.get_temp_at_time(start_time, self.sensors_data[sensor_id])
                 # print(sensor_temp)
                 # delta, success = self.get_delta(start_time, self.sensors_data[sensor_id], self.api_temp)
                 if success and success_2:
@@ -132,8 +132,8 @@ class DataAnalyzer:
                         # print(forecast)
                         a = (forecast[0]-start_time)/60
                         # print(a)
-                        b = round(forecast[1], 3)
-                        # b = round(forecast[1]+delta, 3)
+                        # b = round(forecast[1], 3)
+                        b = round(forecast[1]+delta, 3)
                         # print(b)
                         # sys.exit(0)
                         c,d = self.get_temp_at_time(forecast[0], self.sensors_data[sensor_id])
