@@ -121,27 +121,27 @@ class DataAnalyzer:
             start_time = (self.forecast_temps[forecast_time][0][0])
             api_temp, success = self.get_temp_at_time(start_time, self.api_temp)
             # Go through each sensor
-            for sensor_id in self.sensors_data:
-                sensor_temp, success_2 = self.get_temp_at_time(start_time, self.sensors_data[sensor_id])
-                # print(sensor_temp)
-                # delta, success = self.get_delta(start_time, self.sensors_data[sensor_id], self.api_temp)
-                if success and success_2:
-                    delta = sensor_temp - api_temp
-                    # print(delta)
-                    for forecast in self.forecast_temps[forecast_time]:
-                        # print(forecast)
-                        a = (forecast[0]-start_time)/60
-                        # print(a)
-                        # b = round(forecast[1], 3)
-                        b = round(forecast[1]+delta, 3)
-                        # print(b)
-                        # sys.exit(0)
-                        c,d = self.get_temp_at_time(forecast[0], self.sensors_data[sensor_id])
-                        # print(c)
-                        # sys.exit(0)
-                        if d:
-                            self.results_x.append(a)
-                            self.results_y.append(b-c)
+            # for sensor_id in self.sensors_data:
+            sensor_temp, success_2 = self.get_temp_at_time(start_time, self.api_temp)
+            # print(sensor_temp)
+            # delta, success = self.get_delta(start_time, self.sensors_data[sensor_id], self.api_temp)
+            if success and success_2:
+                delta = sensor_temp - api_temp
+                # print(delta)
+                for forecast in self.forecast_temps[forecast_time]:
+                    # print(forecast)
+                    a = (forecast[0]-start_time)/60
+                    # print(a)
+                    # b = round(forecast[1], 3)
+                    b = round(forecast[1], 3)
+                    # print(b)
+                    # sys.exit(0)
+                    c,d = self.get_temp_at_time(forecast[0], self.api_temp)
+                    # print(c)
+                    # sys.exit(0)
+                    if d:
+                        self.results_x.append(a)
+                        self.results_y.append(b-c)
                     
     def get_delta(self, time: int, array_1: pd.DataFrame, array_2: pd.DataFrame) -> tuple[float, bool]:
         temp_1 = array_1.iloc[(array_1['time']-time).abs().argsort()[:1]]
@@ -191,11 +191,11 @@ class DataAnalyzer:
             # print(df)
             # df1 = df[df["time"] ]
             plt.xlim(-25, 25)
-            plt.ylim(0, 600)
+            plt.ylim(0, 60)
             plt.xlabel("Error (F)", fontsize=15)
             plt.ylabel("Frequency", fontsize=15)
             plt.title("Error Distribution for Unaltered Prediction", fontsize=20)
-            plt.hist(df["temp_diff"], bins=100)
+            plt.hist(df["temp_diff"], bins=50)
             print(df["temp_diff"].describe())
             
             # # Plot api accuracy
