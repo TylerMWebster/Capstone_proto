@@ -1,4 +1,5 @@
 import argparse
+import ast
 import json
 import os
 import pathlib
@@ -11,89 +12,136 @@ import matplotlib.pyplot as plt
 class DataAnalyzer:
 
     PATH = pathlib.Path(__file__).parent.resolve()
+    API_TEMP_FILENAME = "api_temp_file_2.csv"
+    SENSOR_TEMP_FILENAME = "sensor_temp.csv"
 
     def __init__(self, **kwargs) -> None:
         self.raw_data: pd.DataFrame = None
-        self.api_temp = None
+        self.api_temp: pd.DataFrame = None
         self.path = kwargs["path"]
         self.data_path = self.PATH / self.path
         self.graph = kwargs["graph"]
-        self.save = kwargs["save"]
+        self.save: bool = kwargs["save"]
         self.results_x = []
         self.results_y = []
-        self.forecast_temps = []
+        self.forecast_temps = {}
+        self.forecast_files = []
+        self.sensors_data: dict[int, pd.DataFrame] = {}
     
     def start(self):
-        # Read file
-        self.read_data()
-        
-        # Clean file
-        self.clean_data()
+        # Only reload data if specified. Otherwise use pre-save data
+        if self.save:
+            self.read_data()
+            self.clean_data()
+            self.save_data()
+        else:
+            self.load_data()
         
         # Start loop for each prediction
         self.predict()
         
         self.graph_data()
-        self.save_data()
         
     def read_data(self):
-        try:
-            for file in os.listdir(str(self.data_path)):
-                if file.endswith(".csv"):
-                    csv_file = file
-        except Exception as e:
-            print(e.message)
-            print("invalid directory. Directory must contain a csv file of sensor data and a folder named \"predictions\"")
-            sys.exit(1)
+        # try:
+        #     for file in os.listdir(str(self.data_path)):
+        #         if file.endswith(".csv"):
+        #             csv_file = file
+        # except Exception as e:
+        #     print(e.message)
+        #     print("invalid directory. Directory must contain a csv file of sensor data and a folder named \"predictions\"")
+        #     sys.exit(1)
                 
-        for file in os.listdir(str(self.data_path / "predictions")):
-            if file.endswith(".csv"):
-                api_temp_file = file
+        # for file in os.listdir(str(self.data_path / "predictions")):
+        #     if file.endswith(".csv"):
+        #         api_temp_file = file
         
         # Raw data from all sensors
-        self.raw_data = pd.read_csv(self.data_path / csv_file, dtype="float64")
+        self.raw_data = pd.read_csv(self.data_path / self.SENSOR_TEMP_FILENAME, dtype="float64")
         
         # Minute-by-minute data from api
-        self.api_temp = pd.read_csv(self.data_path / "predictions" / api_temp_file, dtype="float64")
+        self.api_temp = pd.read_csv(self.data_path / "predictions" / self.API_TEMP_FILENAME, dtype="float64")
         
         # # Start time at 0
         # self.raw_data["time"] = self.raw_data["time"] - self.raw_data["time"][0]
         # self.api_temp["time"] = self.api_temp["time"] - self.api_temp["time"][0]
         
         # Make seperate sensor arrays
-        self.sensors_data = {}
         for i in self.raw_data:
             if i != "time":
                 self.sensors_data[i] = self.raw_data[["time", i]]
         
-        # print(self.sensors_data)
-        
+        # Get data from forecast json files
+        self.forecast_files = os.listdir(str(self.data_path / "predictions"))
+        # self.forecast_files.sort()
+        for file in self.forecast_files:
+            if file.endswith(".json"):
+                name = int(file[:-5])
+                self.forecast_temps[name] = (self.get_forecast_temps(name))
+                        
     def clean_data(self):
         for i in self.sensors_data:
             # Drop NaNs and -196's
             self.sensors_data[i] = self.sensors_data[i][self.sensors_data[i] > -100].dropna()
         # print(self.sensors_data)
+            
+    def save_data(self):
+        # Save results if specified to
+        forecast_times = list(self.forecast_temps.keys())
+        forecast_times.sort()
+        a = {}
+        a["time"] = []
+        a["temp"] = []
+        for forecast_time in forecast_times:
+            # print(self.forecast_temps[forecast_time][0][1]) # Get the temperature (index 1) of the first prediction (index 0)
+            a["time"].append(self.forecast_temps[forecast_time][0][0]) # Get the first prediction (index 0) time (index 0)
+            a["temp"].append(self.forecast_temps[forecast_time][0][1]) # Get the first prediction (index 0) temperature (index 1)
+            
+        df = pd.DataFrame(a)
+        df.to_csv(self.data_path / "predictions" / "temperature_file_2.csv", index=False)
+        
+        with open(self.data_path / "forecast_temps", "w+") as f:f.write(repr(self.forecast_temps))
+        
+        for i in self.sensors_data:
+            self.sensors_data[i].to_pickle(self.data_path / "sensors" / str(i))
+
+    def load_data(self):
+        # Raw data from all sensors
+        self.raw_data = pd.read_csv(self.data_path / self.SENSOR_TEMP_FILENAME, dtype="float64")
+        self.api_temp = pd.read_csv(self.data_path / "predictions" / self.API_TEMP_FILENAME, dtype="float64")
+        with open(self.data_path / "forecast_temps", "r") as f: self.forecast_temps = ast.literal_eval(f.read())
+        for file in os.listdir(str(self.data_path / "sensors")):
+            self.sensors_data[file] = pd.read_pickle(str(self.data_path / "sensors" / file))
         
     def predict(self):
-        # Go through each prediction file
-        files = os.listdir(str(self.data_path / "predictions"))
-        files.sort()
-        for file in files:
-            if file.endswith(".json"):
-                name = int(file[:-5])
-                self.forecast_temps.append(self.get_forecast_temps(name))
-                # Go through each sensor
-                for sensor_id in self.sensors_data:
-                    delta, success = self.get_delta(name, self.sensors_data[sensor_id], self.api_temp)
-                    if success:
-                        for forecast_temp in self.forecast_temps[-1]:
-                            a = (forecast_temp[0]-name)/60
-                            b = round(forecast_temp[1]+delta, 3)
-                            c, d = self.get_temp_at_time(forecast_temp[0], self.sensors_data[sensor_id])
-                            # sys.exit(0)
-                            if d:
-                                self.results_x.append(a)
-                                self.results_y.append(b-c)
+        forecast_times = list(self.forecast_temps.keys())
+        forecast_times.sort()
+        # print(self.forecast_temps)
+        for forecast_time in forecast_times:
+            start_time = (self.forecast_temps[forecast_time][0][0])
+            api_temp, success = self.get_temp_at_time(start_time, self.api_temp)
+            # Go through each sensor
+            for sensor_id in self.sensors_data:
+                sensor_temp, success_2 = self.get_temp_at_time(start_time, self.api_temp)#self.sensors_data[sensor_id])
+                # print(sensor_temp)
+                # delta, success = self.get_delta(start_time, self.sensors_data[sensor_id], self.api_temp)
+                if success and success_2:
+                    delta = sensor_temp - api_temp
+                    # print(delta)
+                    for forecast in self.forecast_temps[forecast_time]:
+                        # print(forecast)
+                        a = (forecast[0]-start_time)/60
+                        # print(a)
+                        b = round(forecast[1], 3)
+                        # b = round(forecast[1]+delta, 3)
+                        # print(b)
+                        # sys.exit(0)
+                        c,d = self.get_temp_at_time(forecast[0], self.sensors_data[sensor_id])
+                        # print(c)
+                        # sys.exit(0)
+                        if d:
+                            self.results_x.append(a)
+                            self.results_y.append(b-c)
                     
     def get_delta(self, time: int, array_1: pd.DataFrame, array_2: pd.DataFrame) -> tuple[float, bool]:
         temp_1 = array_1.iloc[(array_1['time']-time).abs().argsort()[:1]]
@@ -115,7 +163,7 @@ class DataAnalyzer:
         forecast_temps: list[tuple[int,float]] = []
         prediction_file = open(self.data_path / "predictions" / f"{time}.json",'r')
         prediction_dict = json.load(prediction_file)
-        for j in range(1,5):
+        for j in range(0,48):
             pred_time = int(prediction_dict['hourly'][j]['dt'])
             pred_temp = round(self.k_to_f(prediction_dict['hourly'][j]['temp']), 3)
             forecast_temps.append((pred_time, pred_temp))
@@ -138,27 +186,28 @@ class DataAnalyzer:
             data["time_diff"] = self.results_x
             data["temp_diff"] = self.results_y
             df = pd.DataFrame(data)
-            df = df[df["time_diff"] < 20]
+            df = df[df["time_diff"] > 20]
+            # df = df[df["time_diff"] < 100]
             # print(df)
             # df1 = df[df["time"] ]
-            plt.hist(df["temp_diff"])
+            plt.xlim(-25, 25)
+            plt.ylim(0, 600)
+            plt.xlabel("Error (F)", fontsize=15)
+            plt.ylabel("Frequency", fontsize=15)
+            plt.title("Error Distribution for Unaltered Prediction", fontsize=20)
+            plt.hist(df["temp_diff"], bins=100)
             print(df["temp_diff"].describe())
             
-            # Plot api accuracy
+            # # Plot api accuracy
             # for name in self.forecast_temps:
             #     a = []
             #     b = []
-            #     for forecast in name:
+            #     for forecast in self.forecast_temps[name]:
             #         a.append(forecast[0])
             #         b.append(forecast[1])
             #     plt.plot(a,b)
             plt.show()
-            
-    def save_data(self):
-        # Save results if specified to
-        if self.save:
-            print("save")
-            
+                        
     def k_to_f(self, temp):
         return (temp - 273.15) * 1.8 + 32
 
