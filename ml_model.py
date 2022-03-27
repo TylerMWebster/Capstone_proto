@@ -61,6 +61,8 @@ for sensor_id in sensor_titles:
     np.save(PATH / args.path / "ml" / "data" / "y_test", y_test)
     np.save(PATH / args.path / "ml" / "data" / "x_train", X_train)
     np.save(PATH / args.path / "ml" / "data" / "y_train", y_train)
+    np.save(PATH / args.path / "ml" / "data" / "x_total", X)
+    np.save(PATH / args.path / "ml" / "data" / "y_total", y)
     
     model = Sequential()
     model.add(Dense(500, input_dim=9, activation="relu"))
