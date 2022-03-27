@@ -60,7 +60,7 @@ class DataAnalyzer:
         self.raw_data = pd.read_csv(self.data_path / self.SENSOR_TEMP_FILENAME, dtype="float64")
         
         # Minute-by-minute data from api
-        self.api_temp = pd.read_csv(self.data_path / "predictions" / self.API_TEMP_FILENAME, dtype="float64")
+        # self.api_temp = pd.read_csv(self.data_path / "predictions" / self.API_TEMP_FILENAME, dtype="float64")
         
         # # Start time at 0
         # self.raw_data["time"] = self.raw_data["time"] - self.raw_data["time"][0]
@@ -92,13 +92,90 @@ class DataAnalyzer:
         a = {}
         a["time"] = []
         a["temp"] = []
-        for forecast_time in forecast_times:
-            # print(self.forecast_temps[forecast_time][0][1]) # Get the temperature (index 1) of the first prediction (index 0)
-            a["time"].append(self.forecast_temps[forecast_time][0][0]) # Get the first prediction (index 0) time (index 0)
-            a["temp"].append(self.forecast_temps[forecast_time][0][1]) # Get the first prediction (index 0) temperature (index 1)
+        a["tod"] = []
+        a["season"] = []
+        a["pressure"] = []
+        a["humidity"] = []
+        a["dew_pt"] = []
+        a["clouds"] = []
+        a["wind_speed"] = []
+        a["wind_deg"] = []
+        a["weather_desc"] = []
+        for sensor_id in self.sensors_data:
+            a[str(sensor_id)] = []
             
-        df = pd.DataFrame(a)
-        df.to_csv(self.data_path / "predictions" / "temperature_file_2.csv", index=False)
+        b = {}
+        b["time"] = []
+        b["temp"] = []
+        b["tod"] = []
+        b["season"] = []
+        b["pressure"] = []
+        b["humidity"] = []
+        b["dew_pt"] = []
+        b["clouds"] = []
+        b["wind_speed"] = []
+        b["wind_deg"] = []
+        b["weather_desc"] = []
+        for sensor_id in self.sensors_data:
+            b[str(sensor_id)] = []
+
+        for forecast_time in forecast_times:
+            for i in range(0,48):
+                if i == 0:
+                    # print(self.forecast_temps[forecast_time][0][1]) # Get the temperature (index 1) of the first prediction (index 0)
+                    a["time"].append(self.forecast_temps[forecast_time][i][0]) # Get the first prediction (index 0) time (index 0)
+                    a["temp"].append(self.forecast_temps[forecast_time][i][1]) # Get the first prediction (index 0) temperature (index 1)
+                    a["tod"].append(self.forecast_temps[forecast_time][i][2]) # Get the first prediction (index 0) temperature (index 1)
+                    a["season"].append(self.forecast_temps[forecast_time][i][3]) # Get the first prediction (index 0) temperature (index 1)
+                    a["pressure"].append(self.forecast_temps[forecast_time][i][4]) # Get the first prediction (index 0) temperature (index 1)
+                    a["humidity"].append(self.forecast_temps[forecast_time][i][5]) # Get the first prediction (index 0) temperature (index 1)
+                    a["dew_pt"].append(self.forecast_temps[forecast_time][i][6]) # Get the first prediction (index 0) temperature (index 1)
+                    a["clouds"].append(self.forecast_temps[forecast_time][i][7]) # Get the first prediction (index 0) temperature (index 1)
+                    a["wind_speed"].append(self.forecast_temps[forecast_time][i][8]) # Get the first prediction (index 0) temperature (index 1)
+                    a["wind_deg"].append(self.forecast_temps[forecast_time][i][9]) # Get the first prediction (index 0) temperature (index 1)
+                    a["weather_desc"].append(self.forecast_temps[forecast_time][i][10]) # Get the first prediction (index 0) temperature (index 1)
+                    for sensor_id in self.sensors_data:
+                        sensor_temp, success = self.get_temp_at_time(self.forecast_temps[forecast_time][i][0], self.sensors_data[sensor_id])
+                        if success: 
+                            a[str(sensor_id)].append(sensor_temp)
+                        else:
+                            a[str(sensor_id)].append(-159)
+                else:
+                    # print(self.forecast_temps[forecast_time][0][1]) # Get the temperature (index 1) of the first prediction (index 0)
+                    b["time"].append(self.forecast_temps[forecast_time][i][0]) # Get the first prediction (index 0) time (index 0)
+                    b["temp"].append(self.forecast_temps[forecast_time][i][1]) # Get the first prediction (index 0) temperature (index 1)
+                    b["tod"].append(self.forecast_temps[forecast_time][i][2]) # Get the first prediction (index 0) temperature (index 1)
+                    b["season"].append(self.forecast_temps[forecast_time][i][3]) # Get the first prediction (index 0) temperature (index 1)
+                    b["pressure"].append(self.forecast_temps[forecast_time][i][4]) # Get the first prediction (index 0) temperature (index 1)
+                    b["humidity"].append(self.forecast_temps[forecast_time][i][5]) # Get the first prediction (index 0) temperature (index 1)
+                    b["dew_pt"].append(self.forecast_temps[forecast_time][i][6]) # Get the first prediction (index 0) temperature (index 1)
+                    b["clouds"].append(self.forecast_temps[forecast_time][i][7]) # Get the first prediction (index 0) temperature (index 1)
+                    b["wind_speed"].append(self.forecast_temps[forecast_time][i][8]) # Get the first prediction (index 0) temperature (index 1)
+                    b["wind_deg"].append(self.forecast_temps[forecast_time][i][9]) # Get the first prediction (index 0) temperature (index 1)
+                    b["weather_desc"].append(self.forecast_temps[forecast_time][i][10]) # Get the first prediction (index 0) temperature (index 1)
+                    for sensor_id in self.sensors_data:
+                        sensor_temp, success = self.get_temp_at_time(self.forecast_temps[forecast_time][i][0], self.sensors_data[sensor_id])
+                        if success: 
+                            b[str(sensor_id)].append(sensor_temp)
+                        else:
+                            b[str(sensor_id)].append(-159)
+            
+        # Create api temperature file and save it
+        df = pd.DataFrame(a, columns=["time","temp"])
+        self.api_temp = df
+        df.to_csv(self.data_path / "predictions" / self.API_TEMP_FILENAME, index=False)
+        
+        # Create training file and save it
+        df2 = pd.DataFrame(a)
+        df2.drop("time", axis=1, inplace=True)
+        df2.to_csv(self.data_path / "predictions" / "training.csv", index=False)
+
+        # Create training file and save it
+        df3 = pd.DataFrame(b)
+        df3.drop("time", axis=1, inplace=True)
+        df3.to_csv(self.data_path / "predictions" / "testing.csv", index=False)
+
+        
         
         with open(self.data_path / "forecast_temps", "w+") as f:f.write(repr(self.forecast_temps))
         
@@ -159,14 +236,25 @@ class DataAnalyzer:
             return None, False
         return float(temp_1[temp_1.columns[1]]), True
     
-    def get_forecast_temps(self, time: int) -> list[tuple[int,float]]:
+    def get_forecast_temps(self, time: int) -> list[list]:
         forecast_temps: list[tuple[int,float]] = []
         prediction_file = open(self.data_path / "predictions" / f"{time}.json",'r')
         prediction_dict = json.load(prediction_file)
         for j in range(0,48):
             pred_time = int(prediction_dict['hourly'][j]['dt'])
             pred_temp = round(self.k_to_f(prediction_dict['hourly'][j]['temp']), 3)
-            forecast_temps.append((pred_time, pred_temp))
+            pred_tod = int(prediction_dict['hourly'][j]['dt'])//60%1440 # minutes into the day
+            pred_season = int(pred_time/86400%365) # days into the year
+            pred_pressure = prediction_dict['hourly'][j]['pressure']
+            pred_humidity = prediction_dict['hourly'][j]['humidity']
+            pred_dew_pt = prediction_dict['hourly'][j]['dew_point']
+            pred_clouds = prediction_dict['hourly'][j]['clouds']
+            pred_wind_speed = prediction_dict['hourly'][j]['wind_speed']
+            pred_wind_deg = prediction_dict['hourly'][j]['wind_deg']
+            pred_weather_desc = prediction_dict['hourly'][j]['weather'][0]["description"]
+            forecast_temps.append([pred_time, pred_temp, pred_tod, pred_season, pred_pressure,
+                                   pred_humidity, pred_dew_pt, pred_clouds, pred_wind_speed,
+                                   pred_wind_deg, pred_weather_desc])
         return forecast_temps
         
     def graph_data(self):
