@@ -30,6 +30,7 @@ args = parser.parse_args()
 
 training = pd.read_csv(PATH / args.path / "ml" / "testing.csv")
 testing = pd.read_csv(PATH / args.path / "ml" / "testing.csv")
+training.drop("weather_desc", axis=1, inplace=True)
 
 feature_titles = []
 sensor_titles = []
@@ -42,11 +43,9 @@ for column_name in training:
 for sensor_id in sensor_titles:    
     target_col = sensor_id
     # print(training[list(set(feature_titles)-set(["weather_desc"]))])
-    training[list(set(feature_titles)-set(["weather_desc"]))] = \
-        training[list(set(feature_titles)-set(["weather_desc"]))]/ \
-        training[list(set(feature_titles)-set(["weather_desc"]))].max()
-
-    training.drop("weather_desc", axis=1, inplace=True)
+    training[feature_titles] = \
+        training[feature_titles]/ \
+        training[feature_titles].max()
     
     training2 = training[training[sensor_id] != -159]
 
@@ -57,12 +56,12 @@ for sensor_id in sensor_titles:
     # training2.to_csv(PATH / args.path / "ml" / "data" / f"{sensor_id}_processed.csv", index=False, columns=features)
     
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=40)
-    np.save(PATH / args.path / "ml" / "data" / "x_test", X_test)
-    np.save(PATH / args.path / "ml" / "data" / "y_test", y_test)
-    np.save(PATH / args.path / "ml" / "data" / "x_train", X_train)
-    np.save(PATH / args.path / "ml" / "data" / "y_train", y_train)
-    np.save(PATH / args.path / "ml" / "data" / "x_total", X)
-    np.save(PATH / args.path / "ml" / "data" / "y_total", y)
+    # np.save(PATH / args.path / "ml" / "data" / "x_test", X_test)
+    # np.save(PATH / args.path / "ml" / "data" / "y_test", y_test)
+    # np.save(PATH / args.path / "ml" / "data" / "x_train", X_train)
+    # np.save(PATH / args.path / "ml" / "data" / "y_train", y_train)
+    np.save(PATH / args.path / "ml" / "data" / f"{sensor_id}_x", X)
+    np.save(PATH / args.path / "ml" / "data" / f"{sensor_id}_y", y)
     
     model = Sequential()
     model.add(Dense(500, input_dim=9, activation="relu"))
@@ -83,5 +82,5 @@ for sensor_id in sensor_titles:
     # print(pred)
     print(np.sqrt(mean_squared_error(y_test,pred)))
 
-    sys.exit(0)
+    # sys.exit(0)
     

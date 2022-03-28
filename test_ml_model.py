@@ -16,7 +16,7 @@ import os
 parser = argparse.ArgumentParser()
 parser.add_argument("--path", "-f", required=True, help="The path of the folder containing data to analyze")
 parser.add_argument("--sensor", "-s", required=True, type=int, help="The path of the folder containing data to analyze")
-parser.add_argument("--index", "-i", required=False, default=0, type=int, help="The path of the folder containing data to analyze")
+parser.add_argument("--index", "-i", required=False, default=-1, type=int, help="The path of the folder containing data to analyze")
 
 args = parser.parse_args()
 
@@ -33,11 +33,18 @@ model = keras.models.load_model(path / "ml" / "models" / f"{args.sensor}.keras")
 x = np.load(path / "ml" / "data" / "x_total.npy", "r")
 y = np.load(path / "ml" / "data" / "y_total.npy", "r")
 
-index = args.index
+index = int(args.index)
 
-print(f"Actual: {y[index:index+1][0]}")
-pred = model.predict(x[index:index+1])[0][0]
-print(f"Prediction: {pred}")
+if index == -1:
+    pred = model.predict(x)
+    print(f"RMSE: {np.sqrt(mean_squared_error(y,pred))}")
+else:
+    actual = y[index:index+1][0]
+    pred = model.predict(x[index:index+1])[0][0]
+    
+    print(f"Actual: {actual}")
+    print(f"Prediction: {pred}")
+    print(f"Diff: {actual-pred}")
 
 
 
