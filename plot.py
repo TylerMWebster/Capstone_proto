@@ -33,17 +33,14 @@ class DataAnalyzer:
     
     def start(self):
         # Only reload data if specified. Otherwise use pre-save data
-        # if self.save:
-        #     self.read_data()
-        #     self.clean_data()
-        #     self.predict_ml()
-        #     self.save_data()
-        # else:
-        #     self.load_data()
-            
-        self.load_data()
-        self.predict_ml()
-                
+        if self.save:
+            self.read_data()
+            self.clean_data()
+            self.predict_ml()
+            self.save_data()
+        else:
+            self.load_data()
+                            
         self.graph_data()
         
     def read_data(self):  
@@ -80,31 +77,33 @@ class DataAnalyzer:
         for sensor_id in self.sensors_data:
             forecast[str(sensor_id).strip()] = []
             
-        bar = progressbar.ProgressBar(maxval=len(forecast_times)).start()
-        count = 0
-        for forecast_time in forecast_times:
-            for i in range(0,48):
-                forecast["time"].append(self.forecast_temps[forecast_time][i][0]) # Get the first prediction (index 0) time (index 0)
-                forecast["time_diff"].append(self.forecast_temps[forecast_time][i][0]-self.forecast_temps[forecast_time][0][0]) # Get the first prediction (index 0) time (index 0)
-                forecast["temp"].append(self.forecast_temps[forecast_time][i][1]) # Get the first prediction (index 0) temperature (index 1)
-                forecast["tod"].append(self.forecast_temps[forecast_time][i][2]) # Get the first prediction (index 0) temperature (index 1)
-                forecast["season"].append(self.forecast_temps[forecast_time][i][3]) # Get the first prediction (index 0) temperature (index 1)
-                forecast["pressure"].append(self.forecast_temps[forecast_time][i][4]) # Get the first prediction (index 0) temperature (index 1)
-                forecast["humidity"].append(self.forecast_temps[forecast_time][i][5]) # Get the first prediction (index 0) temperature (index 1)
-                forecast["dew_pt"].append(self.forecast_temps[forecast_time][i][6]) # Get the first prediction (index 0) temperature (index 1)
-                forecast["clouds"].append(self.forecast_temps[forecast_time][i][7]) # Get the first prediction (index 0) temperature (index 1)
-                forecast["wind_speed"].append(self.forecast_temps[forecast_time][i][8]) # Get the first prediction (index 0) temperature (index 1)
-                forecast["wind_deg"].append(self.forecast_temps[forecast_time][i][9]) # Get the first prediction (index 0) temperature (index 1)
-                for sensor_id in self.sensors_data:
-                    sensor_temp, success = self.get_temp_at_time(self.forecast_temps[forecast_time][i][0], self.sensors_data[sensor_id])
-                    if success: 
-                        forecast[str(sensor_id).strip()].append(sensor_temp)
-                    else:
-                        forecast[str(sensor_id).strip()].append(-159)
-            count += 1
-            bar.update(count)
-        self.ml_df = pd.DataFrame(forecast)
-        self.ml_df[FEATURES] = self.ml_df[FEATURES]/self.ml_df[FEATURES].max()
+        # bar = progressbar.ProgressBar(maxval=len(forecast_times)).start()
+        # count = 0
+        # for forecast_time in forecast_times:
+        #     for i in range(0,48):
+        #         forecast["time"].append(self.forecast_temps[forecast_time][i][0]) # Get the first prediction (index 0) time (index 0)
+        #         forecast["time_diff"].append(self.forecast_temps[forecast_time][i][0]-self.forecast_temps[forecast_time][0][0]) # Get the first prediction (index 0) time (index 0)
+        #         forecast["temp"].append(self.forecast_temps[forecast_time][i][1]) # Get the first prediction (index 0) temperature (index 1)
+        #         forecast["tod"].append(self.forecast_temps[forecast_time][i][2]) # Get the first prediction (index 0) temperature (index 1)
+        #         forecast["season"].append(self.forecast_temps[forecast_time][i][3]) # Get the first prediction (index 0) temperature (index 1)
+        #         forecast["pressure"].append(self.forecast_temps[forecast_time][i][4]) # Get the first prediction (index 0) temperature (index 1)
+        #         forecast["humidity"].append(self.forecast_temps[forecast_time][i][5]) # Get the first prediction (index 0) temperature (index 1)
+        #         forecast["dew_pt"].append(self.forecast_temps[forecast_time][i][6]) # Get the first prediction (index 0) temperature (index 1)
+        #         forecast["clouds"].append(self.forecast_temps[forecast_time][i][7]) # Get the first prediction (index 0) temperature (index 1)
+        #         forecast["wind_speed"].append(self.forecast_temps[forecast_time][i][8]) # Get the first prediction (index 0) temperature (index 1)
+        #         forecast["wind_deg"].append(self.forecast_temps[forecast_time][i][9]) # Get the first prediction (index 0) temperature (index 1)
+        #         for sensor_id in self.sensors_data:
+        #             sensor_temp, success = self.get_temp_at_time(self.forecast_temps[forecast_time][i][0], self.sensors_data[sensor_id])
+        #             if success: 
+        #                 forecast[str(sensor_id).strip()].append(sensor_temp)
+        #             else:
+        #                 forecast[str(sensor_id).strip()].append(-159)
+        #     count += 1
+        #     bar.update(count)
+        # self.ml_df = pd.DataFrame(forecast)
+        # self.ml_df[FEATURES] = self.ml_df[FEATURES]/self.ml_df[FEATURES].max()
+        
+        self.ml_df = pd.read_csv(self.data_path / "ml" / "all.csv", dtype="float64")
                    
     def clean_data(self):
         for i in self.sensors_data:
@@ -216,11 +215,14 @@ class DataAnalyzer:
        
     def predict_ml(self):
         print("Predicting...")
+        time_diffs = []
+        temp_diffs = []
         for sensor_id in self.sensors_data:
             df = self.ml_df[self.ml_df[sensor_id]!=-196.6]
             df = df[df[sensor_id]!=-159.0]
             a = df[FEATURES].values
             b = df[sensor_id].values
+            c = df["time_diff"].values
             model = keras.models.load_model(self.data_path / "ml" / "models" / f"{str(sensor_id)}.keras")
             # print(sensor_id)
             pred = model.predict(a)
@@ -232,10 +234,19 @@ class DataAnalyzer:
             
             df2 = pd.DataFrame(self.ml_result)
             
-            plt.scatter(df2["time"], df2["temp"])
-            plt.scatter(df2["time"], df2["pred_temp"])
-            plt.show()
+            time_diffs.extend(c)
+            temp_diffs.extend(self.ml_result["pred_temp"] - self.ml_result["temp"])
+            # self.results["y"] = self.ml_result["pred_temp"] - self.ml_result["temp"]
+            
+            # print(self.results["y"])
+            # sys.exit(0)
+            
+            # plt.scatter(df2["time"], df2["temp"])
+            # plt.scatter(df2["time"], df2["pred_temp"])
+            # plt.show()
             # print(df2)
+        self.results["x"] = time_diffs
+        self.results["y"] = temp_diffs
             
                     
     def get_delta(self, time: int, array_1: pd.DataFrame, array_2: pd.DataFrame) -> tuple:
@@ -276,9 +287,9 @@ class DataAnalyzer:
         return forecast_temps
         
     def graph_data(self):
-        print("Graphing...")
         # Graphs results if specified to
         if self.graph:
+            print("Graphing...")
             
             # # Plot sensors vs api temp
             # for i in self.sensors_data:
@@ -298,10 +309,10 @@ class DataAnalyzer:
             # print(df)
             # df1 = df[df["time"] ]
             plt.xlim(-30, 30)
-            # plt.ylim(0, 600)
+            plt.ylim(0, 13000)
             plt.xlabel("Error (F)", fontsize=15)
             plt.ylabel("Frequency", fontsize=15)
-            plt.title("Error Distribution for Unaltered Prediction", fontsize=20)
+            plt.title("Error Distribution for Prediction Without Temperature Delta", fontsize=20)
             plt.hist(df["temp_diff"], bins=100)
             print(df["temp_diff"].describe())
             
