@@ -45,8 +45,8 @@ for sensor_id in sensor_titles:
         
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=42)
 
-    np.save(PATH / args.path / "ml" / "data" / f"{sensor_id}_x", X)
-    np.save(PATH / args.path / "ml" / "data" / f"{sensor_id}_y", y)
+    # np.save(PATH / args.path / "ml" / "data" / f"{sensor_id}_x", X)
+    # np.save(PATH / args.path / "ml" / "data" / f"{sensor_id}_y", y)
     
     model = Sequential()
     model.add(Dense(500, input_dim=9, activation="relu"))
