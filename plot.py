@@ -234,19 +234,22 @@ class DataAnalyzer:
             
             df2 = pd.DataFrame(self.ml_result)
             
-            time_diffs.extend(c)
+            time_diffs.extend(c[int(len(a)/2):])
             temp_diffs.extend(self.ml_result["pred_temp"] - self.ml_result["temp"])
             # self.results["y"] = self.ml_result["pred_temp"] - self.ml_result["temp"]
             
             # print(self.results["y"])
             # sys.exit(0)
             
-            # plt.scatter(df2["time"], df2["temp"])
-            # plt.scatter(df2["time"], df2["pred_temp"])
-            # plt.show()
+            plt.scatter(df2["time"], df2["temp"])
+            plt.scatter(df2["time"], df2["pred_temp"])
+            plt.show()
             
             # plt.savefig("test.png")
             # print(df2)
+        # print(len(time_diffs))
+        # print(len(temp_diffs))
+        # sys.exit(0)
         self.results["x"] = time_diffs
         self.results["y"] = temp_diffs
             
@@ -311,10 +314,10 @@ class DataAnalyzer:
             # print(df)
             # df1 = df[df["time"] ]
             plt.xlim(-30, 30)
-            plt.ylim(0, 13000)
+            plt.ylim(0, 4000)
             plt.xlabel("Error (F)", fontsize=15)
             plt.ylabel("Frequency", fontsize=15)
-            plt.title("Error Distribution for Prediction Without Temperature Delta", fontsize=20)
+            plt.title("Error Distribution for Prediction Using Weather Forecast", fontsize=20)
             plt.hist(df["temp_diff"], bins=100)
             print(df["temp_diff"].describe())
             
