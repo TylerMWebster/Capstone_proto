@@ -223,14 +223,14 @@ class DataAnalyzer:
             a = df[FEATURES].values
             b = df[sensor_id].values
             c = df["time_diff"].values
-            model = keras.models.load_model(self.data_path / "ml" / "models" / f"{str(sensor_id)}.keras")
+            model = keras.models.load_model(self.data_path / "ml" / "models" / f"{str(sensor_id)}_newmodel.keras")
             # print(sensor_id)
             pred = model.predict(a)
             # print(pred)
             # print(b[0:1])
-            self.ml_result["time"] = df["time"]
-            self.ml_result["temp"] = b
-            self.ml_result["pred_temp"] = pred.flatten()
+            self.ml_result["time"] = df["time"][int(len(a)/2):]
+            self.ml_result["temp"] = b[int(len(a)/2):]
+            self.ml_result["pred_temp"] = pred.flatten()[int(len(a)/2):]
             
             df2 = pd.DataFrame(self.ml_result)
             
@@ -244,6 +244,8 @@ class DataAnalyzer:
             # plt.scatter(df2["time"], df2["temp"])
             # plt.scatter(df2["time"], df2["pred_temp"])
             # plt.show()
+            
+            # plt.savefig("test.png")
             # print(df2)
         self.results["x"] = time_diffs
         self.results["y"] = temp_diffs
@@ -325,6 +327,8 @@ class DataAnalyzer:
             #         b.append(forecast[1])
             #     plt.plot(a,b)
             plt.show()
+            plt.savefig("test.png")
+
                         
     def k_to_f(self, temp):
         return (temp - 273.15) * 1.8 + 32

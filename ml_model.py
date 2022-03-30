@@ -24,6 +24,8 @@ import keras
 from keras.models import Sequential
 from keras.layers import Dense
 
+EPOCHS = 70
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--path", "-f", required=True, help="The path of the folder containing data to analyze")
 parser.add_argument("--save", "-s", action="store_true", help="Save the resulting analysis")
@@ -38,58 +40,52 @@ for column_name in data:
         sensor_titles.append(column_name)
 
 for sensor_id in sensor_titles:  
-    if sensor_id == "40245178127773201199":
         
-        for epochs in range(71, 200, 1):
-            sum_train_err = 0
-            sum_test_err = 0
-            sum_new_err = 0
-            for i in range(0,10):
-                target_col = sensor_id
+        target_col = sensor_id
 
-                df = data[data[sensor_id]!=-196.6]
-                df = df[df[sensor_id]!=-159.0]
-                
-                X = df[FEATURES].values
-                y = df[sensor_id].values
-                
-                X1 = df[FEATURES].values[0:int(len(X)/2)]
-                y1 = df[sensor_id].values[0:int(len(y)/2)]
-                
-                X2 = df[FEATURES].values[int(len(X)/2):]
-                y2 = df[sensor_id].values[int(len(y)/2):]
-                
-                X_train, X_test, y_train, y_test = train_test_split(X1, y1, test_size=0.3, random_state=42)
-
-                # np.save(PATH / args.path / "ml" / "data" / f"{sensor_id}_x", X)
-                # np.save(PATH / args.path / "ml" / "data" / f"{sensor_id}_y", y)
-                
-                model = Sequential()
-                model.add(Dense(500, input_dim=9, activation="relu"))
-                model.add(Dense(100, activation= "relu"))
-                model.add(Dense(50, activation= "relu"))
-                model.add(Dense(1))
-                
-                model.compile(loss= "mean_squared_error" , optimizer="adam", metrics=["mean_squared_error"])
-                model.fit(X_train, y_train, epochs=epochs)
-                
-                # model.save(PATH / args.path / "ml" / "models" / f"{sensor_id}.keras")
-                
-                pred_train = model.predict(X_train)
-                train_err = (np.sqrt(mean_squared_error(y_train,pred_train)))
-                sum_train_err += train_err
-
-                pred = model.predict(X_test)
-                test_err = (np.sqrt(mean_squared_error(y_test,pred)))
-                sum_test_err += test_err
-                
-                pred_new = model.predict(X2)
-                new_err = (np.sqrt(mean_squared_error(y2,pred_new)))
-                sum_new_err += new_err
-                
-                
-                with open("results_2.txt", "a+") as file:
-                    file.write(f"{epochs},{train_err},{test_err},{new_err}\n")
+        df = data[data[sensor_id]!=-196.6]
+        df = df[df[sensor_id]!=-159.0]
         
-        sys.exit(0)
+        X = df[FEATURES].values
+        y = df[sensor_id].values
+        
+        X1 = df[FEATURES].values[0:int(len(X)/2)]
+        y1 = df[sensor_id].values[0:int(len(y)/2)]
+        
+        X2 = df[FEATURES].values[int(len(X)/2):]
+        y2 = df[sensor_id].values[int(len(y)/2):]
+        
+        X_train, X_test, y_train, y_test = train_test_split(X1, y1, test_size=0.3, random_state=42)
+
+        # np.save(PATH / args.path / "ml" / "data" / f"{sensor_id}_x", X)
+        # np.save(PATH / args.path / "ml" / "data" / f"{sensor_id}_y", y)
+        
+        model = Sequential()
+        model.add(Dense(500, input_dim=9, activation="relu"))
+        model.add(Dense(100, activation= "relu"))
+        model.add(Dense(50, activation= "relu"))
+        model.add(Dense(1))
+        
+        model.compile(loss= "mean_squared_error" , optimizer="adam", metrics=["mean_squared_error"])
+        model.fit(X_train, y_train, epochs=EPOCHS)
+        
+        
+        pred_train = model.predict(X_train)
+        train_err = (np.sqrt(mean_squared_error(y_train,pred_train)))
+
+        pred = model.predict(X_test)
+        test_err = (np.sqrt(mean_squared_error(y_test,pred)))
+        
+        pred_new = model.predict(X2)
+        new_err = (np.sqrt(mean_squared_error(y2,pred_new)))
+        
+        print(f"XXXXXXXXX {new_err} XXXXXXXXX")
+        
+        if args.save:
+            model.save(PATH / args.path / "ml" / "models" / f"{sensor_id}_newmodel.keras")
+
+        
+        # with open("results_2.txt", "a+") as file:
+        #     file.write(f"{epochs},{train_err},{test_err},{new_err}\n")
+        
     
